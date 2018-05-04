@@ -1,0 +1,68 @@
+arn:aws:iam::352414040479:role/lambda-s3-execution-role
+
+
+# create zip file
+from root project directory
+
+zip -r9 uploadData.zip venv/lib/python3.5/site-packages
+zip -g uploadData.zip uploadData.py
+
+
+$ aws lambda create-function \
+--region us-east-1 \
+--function-name uploadData \
+--zip-file fileb:///home/jonathan/code/lambda/autoLoadEquityFinderData/uploadData.zip \
+--role arn:aws:iam::352414040479:role/lambda-s3-execution-role \
+--handler uploadData.handler \
+--runtime python3.6 \
+--profile default \
+--timeout 90 \
+--memory-size 1024
+
+
+# update code
+
+aws lambda update-function-code \
+--region us-east-1 \
+--function-name uploadData \
+--zip-file fileb:///home/jonathan/code/lambda/autoLoadEquityFinderData/uploadData.zip
+
+
+aws lambda update-function-configuration \
+--region us-east-1 \
+--function-name uploadData \
+--timeout 90
+
+
+# manually test code
+
+aws lambda invoke \
+--invocation-type RequestResponse \
+--function-name uploadData \
+--region us-east-1 \
+--payload file:///home/jonathan/code/lambda/autoLoadEquityFinderData/inputfile.txt \
+--profile default \
+outputfile.txt
+
+
+# assign permission to s3 bucket to actually fire off lambda FunctionName
+aws lambda add-permission \
+--function-name uploadData \
+--region us-east-1 \
+--statement-id 1000 \
+--action "lambda:InvokeFunction" \
+--principal s3.amazonaws.com \
+--source-arn arn:aws:s3:::dev.trueprodigy.s3 \
+--source-account 352414040479 \
+--profile default
+
+
+# verify function access policy
+aws lambda get-policy \
+--function-name uploadData \
+--region us-east-1 \
+--profile default
+
+
+# configure s3 bucket to call lambda function on event
+https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-configure-event-source.html
